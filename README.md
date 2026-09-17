@@ -99,6 +99,7 @@ public/                   → frontend (HTML, CSS, JS puro, sem build)
 - Sessão: cookie `httpOnly`, assinado com `JWT_SECRET` (que não fica no código).
 - Permissões: checadas em cada rota da API no servidor — o frontend só esconde botões, quem garante mesmo é o backend.
 - Rate limiting no login (8 tentativas por IP a cada 10 min) + bloqueio de conta após 5 senhas erradas seguidas.
+- **Conta de proprietário travada**: se a variável `OWNER_USERNAME` estiver definida, só esse nome de usuário específico pode criar a conta de dono na primeira tela — ninguém mais que abrir o site antes de você consegue reivindicar esse papel. A senha nunca fica salva em nenhum arquivo: você digita ela direto na tela do site, que já a criptografa (bcrypt) antes de guardar.
 - Upload de arquivo com limite de tamanho (15 MB) e lista de extensões permitidas.
 - Proteção contra SQL Injection: todas as consultas usam parâmetros (prepared statements do driver do Postgres), nunca concatenação de string.
 

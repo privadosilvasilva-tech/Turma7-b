@@ -51,8 +51,17 @@ router.post('/setup', asyncRoute(async (req, res) => {
   if (password.length < 6) {
     return res.status(400).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
   }
-  const hash = bcrypt.hashSync(password, 12);
   const cleanUsername = username.trim().toLowerCase();
+
+  // Se OWNER_USERNAME estiver configurado (variável de ambiente), só esse
+  // usuário específico pode virar o proprietário — ninguém mais que abrir o
+  // site pela primeira vez consegue reivindicar a conta de dono.
+  const allowedOwner = (process.env.OWNER_USERNAME || '').trim().toLowerCase();
+  if (allowedOwner && cleanUsername !== allowedOwner) {
+    return res.status(403).json({ error: 'Este nome de usuário não está autorizado a criar a conta de proprietário.' });
+  }
+
+  const hash = bcrypt.hashSync(password, 12);
   const info = await run(
     `INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, 'owner')`,
     cleanUsername, hash, display_name
