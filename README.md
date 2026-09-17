@@ -52,7 +52,24 @@ Como todo navegador bloqueia som automático sem interação do usuário, a mús
 
 Se preferir só um botão que abre o vídeo do YouTube em vez de tocar dentro do site, me avise que eu troco essa parte.
 
-## 3. Colocar o site no ar (hospedagem)
+## 3. Enviar para o GitHub
+
+O projeto já vem com um repositório git iniciado e o primeiro commit feito (o `.gitignore` garante que `.env`, o banco de dados e os arquivos de upload nunca vão parar no GitHub). Para enviar:
+
+1. Crie um repositório novo e **vazio** no GitHub (sem README, sem .gitignore — já tem esses arquivos aqui). Copie a URL dele, algo como `https://github.com/seu-usuario/turma-central.git`.
+2. No terminal, dentro da pasta do projeto:
+
+```bash
+git remote add origin https://github.com/seu-usuario/turma-central.git
+git branch -M main
+git push -u origin main
+```
+
+3. Pronto — o código está no GitHub. **Confira lá que o arquivo `.env` não aparece na lista** (ele nunca deve aparecer; só o `.env.example` deve estar visível).
+
+Depois disso, no Render ou Railway você conecta esse mesmo repositório do GitHub e configura as variáveis de ambiente (`JWT_SECRET`, `OWNER_USERNAME`, `OWNER_PASSWORD`, `NOME_DA_TURMA`) direto no painel da plataforma — nunca dentro do código.
+
+## 4. Colocar o site no ar (hospedagem)
 
 Este projeto precisa rodar num servidor Node.js (não é um site estático). Opções gratuitas/simples:
 
@@ -60,7 +77,7 @@ Este projeto precisa rodar num servidor Node.js (não é um site estático). Op�
 - Importante: o banco (`db/turma.db`) e a pasta `public/uploads` precisam ficar num **disco persistente** — em muitos planos gratuitos o sistema de arquivos é apagado a cada novo deploy. Verifique nas configurações do serviço a opção de "persistent disk"/"volume".
 - Configure `NODE_ENV=production` em produção.
 
-## 4. Estrutura do projeto
+## 5. Estrutura do projeto
 
 ```
 server.js              → servidor Express + Socket.io
@@ -75,7 +92,7 @@ routes/logs.js            → registros administrativos (painel do proprietário
 public/                   → frontend (HTML, CSS, JS puro, sem build)
 ```
 
-## 5. Segurança — o que já está implementado
+## 6. Segurança — o que já está implementado
 
 - Senhas: nunca em texto puro, sempre com `bcrypt`.
 - Sessão: cookie `httpOnly`, assinado com `JWT_SECRET` (que não fica no código).
@@ -84,7 +101,7 @@ public/                   → frontend (HTML, CSS, JS puro, sem build)
 - Upload de arquivo com limite de tamanho (15 MB) e lista de extensões permitidas.
 - Proteção contra SQL Injection: todas as consultas usam parâmetros (`better-sqlite3` prepared statements), nunca concatenação de string.
 
-## 6. Próximos passos que você pode pedir para expandir
+## 7. Próximos passos que você pode pedir para expandir
 
 - Notificações push via PWA (dá pra adicionar depois com um Service Worker).
 - Exportar relatórios de atividades.
