@@ -12,23 +12,34 @@ Site para gerenciar atividades, prazos, avisos e chat em tempo real de uma turma
 - Painel administrativo, painel exclusivo do proprietário e logs de ações importantes.
 - Modo claro/escuro e layout responsivo (celular, tablet, computador).
 - Música de fundo tocando direto do YouTube em loop, com botão de som (veja a seção "Música" abaixo — navegadores bloqueiam áudio com som sem interação do usuário, isso não é uma limitação deste projeto específico, é regra de todo navegador).
-- **Não precisa configurar nada manualmente**: a chave de segurança das sessões (antigamente chamada de JWT_SECRET) é gerada sozinha na primeira vez que o servidor liga, e a conta do proprietário é criada direto pela tela do site.
+- **Quase não precisa configurar nada manualmente**: a chave de segurança das sessões é gerada sozinha na primeira vez que o servidor liga, e a conta do proprietário é criada direto pela tela do site. O único passo manual que sobrou é criar um banco de dados gratuito (leva 2 minutos, veja abaixo) — assim os dados nunca somem, nem quando você atualizar o site.
+
+## 0. Banco de dados (Neon — gratuito, guarda os dados pra sempre)
+
+Esse site guarda usuários, atividades e o chat num banco de dados. Escolhi o **Neon**: é Postgres na nuvem, gratuito pra sempre (sem cartão), e é o que garante que nada se perde quando você atualizar o código ou reiniciar o servidor — diferente de guardar o banco só no disco do servidor.
+
+1. Crie uma conta grátis em **https://neon.tech** (dá pra entrar com GitHub).
+2. Clique em **Create a project**, dê um nome (ex: `turma-central`) e confirme.
+3. Assim que o projeto for criado, o painel já mostra a **connection string** completa (algo como `postgresql://usuario:senha@ep-xxxx.neon.tech/neondb?sslmode=require`) — copie ela inteira.
+4. Cole no arquivo `.env` do projeto (copie `.env.example` para `.env` primeiro), na variável `DATABASE_URL`.
+
+Pronto — o site cria as tabelas sozinho na primeira vez que liga.
 
 ## 1. Instalar e rodar localmente
 
-Pré-requisito: [Node.js](https://nodejs.org) versão 18 ou mais recente.
+Pré-requisito: [Node.js](https://nodejs.org) versão 18 ou mais recente, e o banco Neon já criado (passo 0 acima).
 
 ```bash
 cd turma-central
+cp .env.example .env
+# edite o .env e cole a DATABASE_URL do Neon
 npm install
 npm start
 ```
 
-Não precisa criar `.env`, gerar chave nenhuma nem rodar `npm run seed` — o site cuida disso tudo sozinho. Acesse **http://localhost:3000**: como é a primeira vez, vai aparecer uma tela pedindo para criar a conta do **proprietário** (nome, usuário e senha). Depois de criada, você já entra automaticamente logado como proprietário e essa tela nunca mais aparece.
+Não precisa gerar chave nenhuma nem rodar `npm run seed` — a chave de sessão e a conta do proprietário o site cuida sozinho. Acesse **http://localhost:3000**: como é a primeira vez, vai aparecer uma tela pedindo para criar a conta do **proprietário** (nome, usuário e senha). Depois de criada, você já entra automaticamente logado como proprietário e essa tela nunca mais aparece.
 
 A partir daí, crie as contas de administradores, suporte e alunos direto pelo Painel administrativo (👥 Usuários → Criar usuário).
-
-Se quiser, ainda dá pra personalizar o nome da turma copiando `.env.example` para `.env` e preenchendo `NOME_DA_TURMA` — mas isso é opcional.
 
 ## 2. Música de fundo
 
@@ -53,24 +64,28 @@ git push -u origin main
 
 3. Pronto — o código está no GitHub. **Confira lá que o arquivo `.env` não aparece na lista** (ele nunca deve aparecer; só o `.env.example` deve estar visível).
 
-Depois disso, no Render ou Railway você conecta esse mesmo repositório do GitHub e configura as variáveis de ambiente (`JWT_SECRET`, `OWNER_USERNAME`, `OWNER_PASSWORD`, `NOME_DA_TURMA`) direto no painel da plataforma — nunca dentro do código.
+Depois disso, na hospedagem escolhida você conecta esse mesmo repositório do GitHub (ou envia o ZIP) e cadastra `DATABASE_URL` e `NOME_DA_TURMA` direto no painel da plataforma — nunca dentro do código. Não precisa mais de `JWT_SECRET`, `OWNER_USERNAME` nem `OWNER_PASSWORD`.
 
 ## 4. Colocar o site no ar (hospedagem)
 
-Este projeto precisa rodar num servidor Node.js (não é um site estático). Opções gratuitas/simples:
+Este projeto precisa rodar num servidor Node.js com processo contínuo (não é um site estático, e o chat em tempo real via Socket.io precisa de uma conexão que fique aberta — por isso não funciona em hospedagens 100% serverless como a Vercel). Funciona bem em qualquer host que rode Node.js sem parar, como **Render.com** ou **Inject Cloud**, ambos com plano gratuito.
 
-- **Render.com** ou **Railway.app**: conecte o repositório, defina o comando de start (`npm start`) e cadastre as variáveis de ambiente do `.env` no painel do serviço. Rode `npm run seed` uma vez pelo terminal/shell da plataforma (ambas oferecem um shell integrado).
-- Importante: o banco (`db/turma.db`) e a pasta `public/uploads` precisam ficar num **disco persistente** — em muitos planos gratuitos o sistema de arquivos é apagado a cada novo deploy. Verifique nas configurações do serviço a opção de "persistent disk"/"volume".
-- Configure `NODE_ENV=production` em produção.
+1. Crie uma conta na hospedagem escolhida e conecte o repositório do GitHub, ou envie o `.zip` do projeto direto (algumas hospedagens aceitam as duas formas).
+2. Comando de build: `npm install`. Comando de start: `npm start`.
+3. Nas variáveis de ambiente do painel, adicione `DATABASE_URL` (a connection string do Neon), `NOME_DA_TURMA` e `NODE_ENV=production`.
+4. Deploy. Pronto — como os dados ficam no Neon (fora do servidor), eles **não se perdem** mesmo quando você atualizar o código e a hospedagem fizer um novo deploy.
+
+**Atenção com os anexos de atividades**: os arquivos enviados nas publicações (`public/uploads`) ainda ficam salvos no disco do próprio servidor, não no Neon. Em planos gratuitos, esse disco costuma ser apagado a cada novo deploy — ou seja, os *registros* das atividades permanecem, mas um anexo enviado antes de um deploy pode deixar de existir depois. Se isso for importante pra vocês, me avise depois que eu adapto os uploads para um serviço de armazenamento gratuito também (ex: Cloudflare R2).
 
 ## 5. Estrutura do projeto
 
 ```
 server.js              → servidor Express + Socket.io
 db/schema.sql           → estrutura das tabelas
-db/seed.js               → cria a conta do proprietário a partir do .env
+db/index.js              → conexão com o banco Neon (Postgres)
+db/secret.js             → gera e guarda a chave de sessão automaticamente
 middleware/auth.js       → autenticação e checagem de permissões
-routes/auth.js           → login/logout
+routes/auth.js           → login/logout/configuração inicial
 routes/users.js          → gerenciar usuários (criar/editar/excluir/papéis)
 routes/activities.js     → atividades/trabalhos/avisos + upload de anexos
 routes/chat.js            → histórico de mensagens
@@ -85,7 +100,7 @@ public/                   → frontend (HTML, CSS, JS puro, sem build)
 - Permissões: checadas em cada rota da API no servidor — o frontend só esconde botões, quem garante mesmo é o backend.
 - Rate limiting no login (8 tentativas por IP a cada 10 min) + bloqueio de conta após 5 senhas erradas seguidas.
 - Upload de arquivo com limite de tamanho (15 MB) e lista de extensões permitidas.
-- Proteção contra SQL Injection: todas as consultas usam parâmetros (`better-sqlite3` prepared statements), nunca concatenação de string.
+- Proteção contra SQL Injection: todas as consultas usam parâmetros (prepared statements do driver do Postgres), nunca concatenação de string.
 
 ## 7. Próximos passos que você pode pedir para expandir
 

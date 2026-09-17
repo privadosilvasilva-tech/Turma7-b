@@ -1,13 +1,13 @@
 const jwt = require('jsonwebtoken');
-const { db } = require('../db');
+const { get } = require('../db');
 const { JWT_SECRET } = require('../db/secret');
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const token = req.cookies && req.cookies.token;
   if (!token) return res.status(401).json({ error: 'Não autenticado.' });
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id, username, display_name, role FROM users WHERE id = ?').get(payload.id);
+    const user = await get('SELECT id, username, display_name, role FROM users WHERE id = ?', payload.id);
     if (!user) return res.status(401).json({ error: 'Sessão inválida.' });
     req.user = user;
     next();
@@ -29,14 +29,20 @@ function requireRole(minRole) {
   };
 }
 
-function verifySocketToken(token) {
+async function verifySocketToken(token) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id, username, display_name, role FROM users WHERE id = ?').get(payload.id);
+    const user = await get('SELECT id, username, display_name, role FROM users WHERE id = ?', payload.id);
     return user || null;
   } catch (e) {
     return null;
   }
 }
 
-module.exports = { requireAuth, requireRole, verifySocketToken, RANK };
+// Envolve uma rota assíncrona e encaminha qualquer erro pro Express (evita
+// que uma falha de banco de dados derrube o servidor sem resposta ao cliente).
+function asyncRoute(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
+
+module.exports = { requireAuth, requireRole, verifySocketToken, RANK, asyncRoute };
