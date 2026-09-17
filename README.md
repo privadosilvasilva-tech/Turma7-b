@@ -56,11 +56,11 @@ Se preferir só um botão que abre o vídeo do YouTube em vez de tocar dentro do
 
 O projeto já vem com um repositório git iniciado e o primeiro commit feito (o `.gitignore` garante que `.env`, o banco de dados e os arquivos de upload nunca vão parar no GitHub). Para enviar:
 
-1. Crie um repositório novo e **vazio** no GitHub (sem README, sem .gitignore — já tem esses arquivos aqui). Copie a URL dele, algo como `https://github.com/seu-usuario/turma-central.git`.
+1. Crie um repositório novo e **vazio** no GitHub (sem README, sem .gitignore — já tem esses arquivos aqui). Nome sugerido: `Turma7b` (o GitHub não aceita o símbolo `°` em nomes de repositório, só letras, números, hífen, underscore e ponto). Copie a URL do repositório depois de criado.
 2. No terminal, dentro da pasta do projeto:
 
 ```bash
-git remote add origin https://github.com/seu-usuario/turma-central.git
+git remote add origin https://github.com/seu-usuario/Turma7b.git
 git branch -M main
 git push -u origin main
 ```
