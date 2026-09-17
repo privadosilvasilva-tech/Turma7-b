@@ -37,27 +37,57 @@ $('#themeToggle').addEventListener('click', () => {
 });
 applyTheme(localStorage.getItem('theme') || 'light');
 
-/* ---------------- Música de fundo ---------------- */
-const bgm = $('#bgm');
+/* ---------------- Música de fundo (YouTube, toca em loop) ---------------- */
+const BGM_VIDEO_ID = 'g2o3CZaVVCo';
 const musicBtn = $('#musicToggle');
+let bgmPlayer = null;
+let bgmReady = false;
+
 function setMusicUI(on) {
   musicBtn.textContent = on ? '🔊' : '🔈';
   musicBtn.classList.toggle('on', on);
 }
-(async function initMusic() {
-  bgm.muted = true;
-  try { await bgm.play(); } catch (e) { /* navegador exige interação; o botão resolve */ }
-  const wantsSound = localStorage.getItem('musicOn') === '1';
-  setMusicUI(!bgm.muted && wantsSound);
-})();
-musicBtn.addEventListener('click', async () => {
-  bgm.muted = !bgm.muted;
-  if (!bgm.muted) { try { await bgm.play(); } catch (e) {} }
-  localStorage.setItem('musicOn', bgm.muted ? '0' : '1');
-  setMusicUI(!bgm.muted);
+
+// A API do YouTube chama esta função global assim que termina de carregar.
+window.onYouTubeIframeAPIReady = function () {
+  bgmPlayer = new YT.Player('bgmPlayer', {
+    videoId: BGM_VIDEO_ID,
+    playerVars: {
+      autoplay: 1,
+      mute: 1, // navegadores só permitem autoplay se começar mudo
+      loop: 1,
+      playlist: BGM_VIDEO_ID, // necessário para o loop=1 funcionar num vídeo único
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      modestbranding: 1,
+    },
+    events: {
+      onReady: (e) => {
+        bgmReady = true;
+        e.target.playVideo();
+        const wantsSound = localStorage.getItem('musicOn') === '1';
+        if (wantsSound) { e.target.unMute(); }
+        setMusicUI(wantsSound);
+      },
+      // Garantia extra: se por algum motivo o vídeo terminar, reinicia do zero.
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.ENDED) {
+          e.target.seekTo(0);
+          e.target.playVideo();
+        }
+      },
+    },
+  });
+};
+
+musicBtn.addEventListener('click', () => {
+  if (!bgmReady || !bgmPlayer) return;
+  const willBeOn = musicBtn.textContent === '🔈';
+  if (willBeOn) bgmPlayer.unMute(); else bgmPlayer.mute();
+  localStorage.setItem('musicOn', willBeOn ? '1' : '0');
+  setMusicUI(willBeOn);
 });
-// Sempre que a faixa acabar, reinicia (loop já cobre isso; garante também após qualquer interrupção).
-bgm.addEventListener('ended', () => { bgm.currentTime = 0; bgm.play().catch(() => {}); });
 
 /* ---------------- Login / sessão ---------------- */
 api('/settings').then(s => {
@@ -85,7 +115,32 @@ $('#logoutBtn').addEventListener('click', async () => {
   location.reload();
 });
 
-api('/auth/me').then(({ user }) => startApp(user)).catch(() => { $('#loginScreen').hidden = false; });
+$('#setupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#setupError').hidden = true;
+  try {
+    const { user } = await api('/auth/setup', {
+      method: 'POST',
+      body: {
+        display_name: $('#setupDisplayName').value,
+        username: $('#setupUsername').value,
+        password: $('#setupPassword').value,
+      },
+    });
+    $('#setupScreen').hidden = true;
+    startApp(user);
+  } catch (err) {
+    $('#setupError').textContent = err.message;
+    $('#setupError').hidden = false;
+  }
+});
+
+api('/auth/setup-status').then(({ needsSetup }) => {
+  if (needsSetup) { $('#setupScreen').hidden = false; return; }
+  api('/auth/me').then(({ user }) => startApp(user)).catch(() => { $('#loginScreen').hidden = false; });
+}).catch(() => {
+  api('/auth/me').then(({ user }) => startApp(user)).catch(() => { $('#loginScreen').hidden = false; });
+});
 
 function startApp(user) {
   state.user = user;

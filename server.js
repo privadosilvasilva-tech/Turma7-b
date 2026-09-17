@@ -15,11 +15,6 @@ const activitiesRoutes = require('./routes/activities');
 const chatRoutes = require('./routes/chat');
 const logsRoutes = require('./routes/logs');
 
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes('troque_por')) {
-  console.error('ERRO: defina um JWT_SECRET forte no arquivo .env antes de iniciar o servidor.');
-  process.exit(1);
-}
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);

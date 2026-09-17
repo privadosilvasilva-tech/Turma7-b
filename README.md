@@ -11,7 +11,8 @@ Site para gerenciar atividades, prazos, avisos e chat em tempo real de uma turma
 - Chat em tempo real (Socket.io) com histórico salvo no banco e carregamento progressivo.
 - Painel administrativo, painel exclusivo do proprietário e logs de ações importantes.
 - Modo claro/escuro e layout responsivo (celular, tablet, computador).
-- Música de fundo com loop automático e botão de som (veja a seção "Música" abaixo — navegadores bloqueiam áudio com som sem interação do usuário, isso não é uma limitação deste projeto específico, é regra de todo navegador).
+- Música de fundo tocando direto do YouTube em loop, com botão de som (veja a seção "Música" abaixo — navegadores bloqueiam áudio com som sem interação do usuário, isso não é uma limitação deste projeto específico, é regra de todo navegador).
+- **Não precisa configurar nada manualmente**: a chave de segurança das sessões (antigamente chamada de JWT_SECRET) é gerada sozinha na primeira vez que o servidor liga, e a conta do proprietário é criada direto pela tela do site.
 
 ## 1. Instalar e rodar localmente
 
@@ -20,37 +21,22 @@ Pré-requisito: [Node.js](https://nodejs.org) versão 18 ou mais recente.
 ```bash
 cd turma-central
 npm install
-cp .env.example .env
-```
-
-Abra o arquivo `.env` e preencha:
-- `JWT_SECRET`: gere um valor aleatório rodando `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` e cole o resultado.
-- `OWNER_USERNAME` e `OWNER_PASSWORD`: o login e senha que o **proprietário** vai usar.
-- `NOME_DA_TURMA`: o nome que aparece no site.
-
-Depois crie a conta do proprietário (só precisa rodar isso uma vez):
-
-```bash
-npm run seed
-```
-
-Isso cria a conta do dono com a senha já criptografada no banco — a senha em texto puro nunca fica salva em lugar nenhum depois disso. Por segurança, depois de rodar o seed você pode apagar `OWNER_USERNAME`/`OWNER_PASSWORD` do `.env`.
-
-Agora inicie o servidor:
-
-```bash
 npm start
 ```
 
-Acesse **http://localhost:3000** e faça login com a conta do proprietário. A partir daí, crie as contas de administradores, suporte e alunos direto pelo Painel administrativo (👥 Usuários → Criar usuário).
+Não precisa criar `.env`, gerar chave nenhuma nem rodar `npm run seed` — o site cuida disso tudo sozinho. Acesse **http://localhost:3000**: como é a primeira vez, vai aparecer uma tela pedindo para criar a conta do **proprietário** (nome, usuário e senha). Depois de criada, você já entra automaticamente logado como proprietário e essa tela nunca mais aparece.
+
+A partir daí, crie as contas de administradores, suporte e alunos direto pelo Painel administrativo (👥 Usuários → Criar usuário).
+
+Se quiser, ainda dá pra personalizar o nome da turma copiando `.env.example` para `.env` e preenchendo `NOME_DA_TURMA` — mas isso é opcional.
 
 ## 2. Música de fundo
 
-Coloque um arquivo de áudio em `public/uploads/musica-fundo.mp3` (esse é o nome que o site já procura). Use uma música livre de direitos autorais ou com licença que permita esse uso — eu não posso incluir o áudio de um vídeo do YouTube diretamente por questão de direitos autorais.
+A música toca direto do vídeo do YouTube que você escolheu, sem precisar baixar nem hospedar nenhum arquivo de áudio (o player fica escondido na página, só o som é usado).
 
-Como todo navegador bloqueia som automático sem interação do usuário, a música entra tocando **mutada** assim que a página abre, e existe um botão flutuante (🔈/🔊) no canto superior direito: no primeiro clique o som é liberado, e a partir daí ela toca em loop, reiniciando sozinha sempre que a faixa terminar.
+Como todo navegador bloqueia som automático sem interação do usuário, a música entra tocando **mutada** assim que a página abre, e existe um botão flutuante (🔈/🔊) no canto superior direito: no primeiro clique o som é liberado, e a partir daí ela toca em loop, reiniciando sozinha sempre que a faixa terminar. Ela continua tocando enquanto a pessoa navega pelas páginas do site dentro da mesma aba — nenhum site, porém, consegue continuar tocando som com a aba ou o navegador fechados, isso não é algo que dê pra contornar.
 
-Se preferir só um botão que abre o vídeo do YouTube em vez de tocar dentro do site, me avise que eu troco essa parte.
+Para trocar a música depois, basta editar a constante `BGM_VIDEO_ID` no topo de `public/js/app.js` com o ID de outro vídeo do YouTube.
 
 ## 3. Enviar para o GitHub
 

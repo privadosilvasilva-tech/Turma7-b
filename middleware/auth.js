@@ -1,11 +1,12 @@
 const jwt = require('jsonwebtoken');
 const { db } = require('../db');
+const { JWT_SECRET } = require('../db/secret');
 
 function requireAuth(req, res, next) {
   const token = req.cookies && req.cookies.token;
   if (!token) return res.status(401).json({ error: 'Não autenticado.' });
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
     const user = db.prepare('SELECT id, username, display_name, role FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'Sessão inválida.' });
     req.user = user;
@@ -30,7 +31,7 @@ function requireRole(minRole) {
 
 function verifySocketToken(token) {
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
     const user = db.prepare('SELECT id, username, display_name, role FROM users WHERE id = ?').get(payload.id);
     return user || null;
   } catch (e) {

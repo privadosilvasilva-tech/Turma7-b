@@ -4,8 +4,7 @@
   "description": "Central da turma - atividades, calendario e chat em tempo real",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "seed": "node db/seed.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",

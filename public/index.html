@@ -10,14 +10,36 @@
 </head>
 <body>
 
-<!-- Música de fundo: entra mutada (regra do navegador) e libera no primeiro clique -->
-<audio id="bgm" loop preload="auto">
-  <source src="/uploads/musica-fundo.mp3" type="audio/mpeg" />
-</audio>
+<!-- Música de fundo (YouTube): entra mutada (regra do navegador) e libera no primeiro clique -->
+<div id="bgmPlayer" style="position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;"></div>
 <button id="musicToggle" class="music-toggle" title="Ativar som">🔈</button>
 
+<!-- TELA DE PRIMEIRA CONFIGURAÇÃO (só aparece quando ainda não existe nenhum usuário) -->
+<div id="setupScreen" class="login-screen" hidden>
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="login-mark">👑</span>
+      <h1>Bem-vindo! Vamos configurar a turma</h1>
+    </div>
+    <p class="login-sub">Essa é a primeira vez que o site é aberto. Crie aqui a conta do proprietário (dono) do sistema — ela terá acesso total, incluindo o painel "BY ANDRY".</p>
+    <form id="setupForm" class="login-form">
+      <label>Seu nome
+        <input type="text" id="setupDisplayName" required />
+      </label>
+      <label>Usuário para login
+        <input type="text" id="setupUsername" autocomplete="username" required />
+      </label>
+      <label>Senha
+        <input type="password" id="setupPassword" autocomplete="new-password" minlength="6" required />
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Criar conta do proprietário</button>
+      <p id="setupError" class="form-error" hidden></p>
+    </form>
+  </div>
+</div>
+
 <!-- TELA DE LOGIN -->
-<div id="loginScreen" class="login-screen">
+<div id="loginScreen" class="login-screen" hidden>
   <div class="login-card">
     <div class="login-brand">
       <span class="login-mark">🎓</span>
@@ -95,6 +117,7 @@
   <div class="modal" id="modalBox"></div>
 </div>
 
+<script src="https://www.youtube.com/iframe_api"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/app.js"></script>
 </body>

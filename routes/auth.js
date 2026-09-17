@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { JWT_SECRET } = require('../db/secret');
 
 const router = express.Router();
 
@@ -19,6 +20,46 @@ const loginLimiter = rateLimit({
 function logAction(userId, action, targetId) {
   db.prepare('INSERT INTO logs (user_id, action, target_id) VALUES (?, ?, ?)').run(userId, action, targetId || null);
 }
+
+// Primeira vez usando o site: se ainda não existe NENHUM usuário, libera a
+// criação da conta do proprietário direto pela tela (sem precisar editar
+// arquivos nem rodar comandos). Depois que o primeiro usuário existe, essa
+// rota nunca mais aceita criar outro por aqui.
+router.get('/setup-status', (req, res) => {
+  const { count } = db.prepare('SELECT COUNT(*) as count FROM users').get();
+  res.json({ needsSetup: count === 0 });
+});
+
+router.post('/setup', (req, res) => {
+  const { count } = db.prepare('SELECT COUNT(*) as count FROM users').get();
+  if (count > 0) {
+    return res.status(403).json({ error: 'A configuração inicial já foi concluída.' });
+  }
+  const { username, password, display_name } = req.body || {};
+  if (!username || !password || !display_name) {
+    return res.status(400).json({ error: 'Preencha todos os campos.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'A senha precisa ter pelo menos 6 caracteres.' });
+  }
+  const hash = bcrypt.hashSync(password, 12);
+  const info = db.prepare(
+    `INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, 'owner')`
+  ).run(username.trim().toLowerCase(), hash, display_name);
+
+  logAction(info.lastInsertRowid, 'CRIOU_CONTA_PROPRIETARIO_SETUP');
+
+  const token = jwt.sign({ id: info.lastInsertRowid, role: 'owner' }, JWT_SECRET, { expiresIn: '7d' });
+  res.cookie('token', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.status(201).json({
+    user: { id: info.lastInsertRowid, username: username.trim().toLowerCase(), display_name, role: 'owner' },
+  });
+});
 
 router.post('/login', loginLimiter, (req, res) => {
   const { username, password } = req.body || {};
@@ -48,7 +89,7 @@ router.post('/login', loginLimiter, (req, res) => {
 
   db.prepare('UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?').run(user.id);
 
-  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
   res.cookie('token', token, {
     httpOnly: true,
     sameSite: 'lax',
